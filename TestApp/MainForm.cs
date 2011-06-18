@@ -20,7 +20,7 @@ namespace TestApp
             config.InitAttributes.Add("color", new AttributeInfo("red"));
             config.InitAttributes.Add("pages", new AttributeInfo("5"));
             config.LoadConfig();
-            MessageBox.Show(config.ConfigFilePath);
+            MessageBox.Show("{Color: "+ config.Get("color")+"}{pages: "+config.Get("pages")+"}");
         }
     }
 }

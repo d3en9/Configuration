@@ -33,6 +33,12 @@ namespace AppConfig
             this.State = ParameterState.Unknown;
         }
 
+        public AttributeInfo(string Value, string DefaultValue)
+        {
+            this.Value = Value;
+            this.DefaultValue = DefaultValue;
+            this.State = ParameterState.Unknown;
+        }
     }
     #endregion
 
@@ -78,6 +84,11 @@ namespace AppConfig
 
         #endregion
 
+        public string Get(string key)
+        {
+            return LoadAttributes[key].Value;
+        }
+
         private void InitConfigDefaultValue()
         {
             FileStream fs;
@@ -102,7 +113,6 @@ namespace AppConfig
 
         public void LoadConfig()
         {
-            FileStream fs;
             if (!File.Exists(ConfigFilePath))
             {
                 InitConfigDefaultValue();
@@ -110,11 +120,29 @@ namespace AppConfig
             }
             else
             {
-                fs = new FileStream(ConfigFilePath, FileMode.Open);
-            }
-            //todo: load xml
+                using (XmlReader reader = XmlReader.Create(ConfigFilePath))
+                {
+                    bool firstElement = true;
+                    while (reader.Read())
+                    {
+                        if (reader.NodeType == XmlNodeType.Element)
+                        {
+                            if (firstElement) firstElement = false;
+                            else
+                            {
+                                string Name = reader.Name;
+                                reader.Read();
+                                string Value = reader.ReadContentAsString();
+                                reader.ReadEndElement();
+                                
+                                LoadAttributes.Add(Name, new AttributeInfo(Value, Value));
+                            }
+                        }
 
-            fs.Close();
+                    }
+                }
+            }
+                       
             
         }
     }
