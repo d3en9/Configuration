@@ -16,6 +16,11 @@ namespace TestApp
         {
             InitializeComponent();
             Configuration config = new Configuration();
+            config.AppName = Application.ProductName;
+            config.InitAttributes.Add("color", new AttributeInfo("red"));
+            config.InitAttributes.Add("pages", new AttributeInfo("5"));
+            config.LoadConfig();
+            MessageBox.Show(config.ConfigFilePath);
         }
     }
 }
