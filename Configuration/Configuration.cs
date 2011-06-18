@@ -84,11 +84,86 @@ namespace AppConfig
 
         #endregion
 
+        #region methods
+
+        #region public
+
+        #region Load/Flush
+        public void LoadConfig()
+        {
+            if (!File.Exists(ConfigFilePath))
+            {
+                InitConfigDefaultValue();
+                return;
+            }
+            else
+            {
+                LoadConfigFromFile();
+            }
+        }
+
+        public void Flush()
+        {
+            foreach (KeyValuePair<string, AttributeInfo> kvp in InitAttributes)
+            {
+                if (!LoadAttributes.ContainsKey(kvp.Key))
+                {
+                    AttributeInfo ai = new AttributeInfo(kvp.Value.DefaultValue, kvp.Value.DefaultValue);
+                    ai.State = ParameterState.Added;
+                    LoadAttributes.Add(kvp.Key, ai);
+                }
+            }
+            RewriteFile();
+        }
+        #endregion
+
+        #region Set/Get
         public string Get(string key)
         {
             return LoadAttributes[key].Value;
         }
 
+        public void Set(string key, string value)
+        {
+            AttributeInfo ai = new AttributeInfo(value, value);
+            if (LoadAttributes.ContainsKey(key))
+            {
+                ai.State = ParameterState.Changed;
+                LoadAttributes[key] = ai;
+            }
+            else
+            {
+                ai.State = ParameterState.Added;
+                LoadAttributes.Add(key, ai);
+            }
+        }
+        #endregion
+
+        #endregion
+
+        #region private
+
+        #region Save
+        private void RewriteFile()
+        {
+            using (FileStream fs = File.Open(ConfigFilePath, FileMode.Create))
+            {
+                XmlWriterSettings settings = new XmlWriterSettings();
+                settings.Indent = true;
+                using (XmlWriter writer = XmlWriter.Create(fs, settings))
+                {
+                    writer.WriteStartElement("settings");
+                    foreach (KeyValuePair<string, AttributeInfo> kvp in LoadAttributes)
+                    {
+                        writer.WriteElementString(kvp.Key, kvp.Value.Value);
+                    }
+                    writer.WriteEndElement();
+                }
+            }
+        }
+        #endregion
+
+        #region Init
         private void InitConfigDefaultValue()
         {
             FileStream fs;
@@ -102,7 +177,6 @@ namespace AppConfig
                     writer.WriteStartElement("settings");
                     foreach (KeyValuePair<string, AttributeInfo> kvp in InitAttributes)
                     {
-                        //todo: запись в xml
                         writer.WriteElementString(kvp.Key, kvp.Value.DefaultValue);
                         LoadAttributes.Add(kvp.Key, kvp.Value);
                     }
@@ -110,40 +184,34 @@ namespace AppConfig
                 }
             }
         }
+        #endregion
 
-        public void LoadConfig()
+        #region Load
+        private void LoadConfigFromFile()
         {
-            if (!File.Exists(ConfigFilePath))
+            using (XmlReader reader = XmlReader.Create(ConfigFilePath))
             {
-                InitConfigDefaultValue();
-                return;
-            }
-            else
-            {
-                using (XmlReader reader = XmlReader.Create(ConfigFilePath))
+                bool firstElement = true;
+                while (reader.Read())
                 {
-                    bool firstElement = true;
-                    while (reader.Read())
+                    if (reader.NodeType == XmlNodeType.Element)
                     {
-                        if (reader.NodeType == XmlNodeType.Element)
+                        if (firstElement) firstElement = false;
+                        else
                         {
-                            if (firstElement) firstElement = false;
-                            else
-                            {
-                                string Name = reader.Name;
-                                reader.Read();
-                                string Value = reader.ReadContentAsString();
-                                reader.ReadEndElement();
-                                
-                                LoadAttributes.Add(Name, new AttributeInfo(Value, Value));
-                            }
+                            string Name = reader.Name;
+                            reader.Read();
+                            string Value = reader.ReadContentAsString();
+                            reader.ReadEndElement();
+                            LoadAttributes.Add(Name, new AttributeInfo(Value, Value));
                         }
-
                     }
                 }
             }
-                       
-            
         }
+        #endregion
+        #endregion
+
+        #endregion
     }
 }
